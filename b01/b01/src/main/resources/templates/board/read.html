@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/basic.html}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Board Read</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    Board read
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Bno</span>
+                        <input type="text" class="form-control" th:value="${dto.bno}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Title</span>
+                        <input type="text" class="form-control" th:value="${dto.title}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Content</span>
+                        <textarea class="form-control col-sm-5" rows="5"readonly>[[${dto.content}]]</textarea>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Writer</span>
+                        <input type="text" class="form-control" th:value="${dto.writer}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">RegDate</span>
+                        <input type="text" class="form-control" th:value="${#temporals.format(dto.regDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">ModDate</span>
+                        <input type="text" class="form-control" th:value="${#temporals.format(dto.modDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+
+                    <div class="my-4" th:with="user=${#authentication.principal}">
+                        <div class="float-end" th:with="link = ${pageRequestDTO.getLink()}">
+                            <a th:href="|@{/board/list}?${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-primary">List</button>
+                            </a>
+                            <a th:if="${user != null && user.username == dto.writer}" th:href="|@{/board/modify(bno=${dto.bno})}&${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-secondary">Modify</button>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>   <!--card body end-->
+
+                <div class="col">
+                    <div class="card" th:if="${dto.fileNames != null && dto.fileNames.size()>0}">
+                        <img class="card-img-top" th:each="fileName : ${dto.fileNames}" th:src="|/view/${fileName}|">
+                    </div>
+                </div>
+
+            </div>  <!--card end-->
+        </div>   <!--col end-->
+    </div>   <!--row end-->
+
+    <!--댓글-->
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <div class="my-4">
+                <button class="btn btn-info addReplyBtn">Add Reply</button>
+            </div>
+            <ul class="list-group replyList">
+            </ul>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col">
+            <ul class="pagination replyPaging">
+            </ul>
+        </div>
+    </div>
+
+
+    <!--댓글 등록 모달-->
+    <div class="modal registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Register Reply</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Reply Text</span>
+                        <input type="text" class="form-control replyText">
+                    </div>
+                    <div class="input-group mb-3" th:with="user=${#authentication.principal}">
+                        <span class="input-group-text">Replyer</span>
+                        <input type="text" class="form-control replyer" th:value="${user.username}" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary registerBtn">Register</button>
+                    <button type="button" class="btn btn-outline-dark closeRegisterBtn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--댓글 수정 모달-->
+    <div class="modal modifyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title replyHeader"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Reply Text</span>
+                        <input type="text" class="form-control modifyText">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info modifyBtn">Modify</button>
+                    <button type="button" class="btn btn-danger removeBtn">Remove</button>
+                    <button type="button" class="btn btn-outline-dark closeModifyBtn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>   <!--modify modal end-->
+
+    <!--axios 추가-->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/js/reply.js"></script>
+
+</div>  <!--end layout fragment-->
+
+
+
+<script layout:fragment="script" th:inline="javascript">
+
+    const bno = [[${dto.bno}]]
+    // console.log(get1(bno))
+
+    const replyList = document.querySelector(".replyList")   // 댓글 목록 DOM
+    const replyPaging = document.querySelector(".replyPaging")   // 댓글 페이지 목록 DOM
+
+    // 댓글 목록 출력
+    function printList(dtoList) {
+        let str = ''
+
+        if(dtoList && dtoList.length > 0) {
+
+            for(const dto of dtoList) {
+                str += `<li class = "list-group-item d-flex replyItem">
+                    <span class="col-2">${dto.rno}</span>
+                    <span class="col-6" data-rno="${dto.rno}">${dto.replyText}</span>
+                    <span class="col-2">${dto.replyer}</span>
+                    <span class="col-2">${dto.regDate}</span>
+                    </li>`
+            }
+        }
+
+        replyList.innerHTML = str
+    }
+
+
+    // 페이지 목록 출력
+    function printPages(data) {
+
+        // pagination
+        let pageStr = ''
+
+        if(data.prev) {
+            pageStr += `<li class="page-item">
+                            <a class="page-link" data-page="${data.start - 1}">Prev</a>
+                        </li>`
+        }
+
+        for(let i=data.start; i<=data.end; i++) {
+            pageStr += `<li class="page-item ${i == data.page? "active":""}">
+                            <a class="page-link" data-page="${i}">${i}</a>
+                        </li>`
+        }
+
+        if(data.next) {
+            pageStr += `<li class="page-item">
+                            <a class="page-link" data-page="${data.end + 1}">Next</a>
+                        </li>`
+        }
+        replyPaging.innerHTML = pageStr
+    }
+
+
+    // 댓글 출력
+    function printReplies(page, size, goLast) {
+        getList({bno, page, size, goLast}).then(
+            data => {
+                printList(data.dtoList)
+                printPages(data)
+            }
+        ).catch(e => {
+            console.error(e)
+        })
+    }
+
+    printReplies(1, 10, true)   // 무조건 호출
+
+
+    // register modal
+    const registerModal = new bootstrap.Modal(document.querySelector(".registerModal"))
+
+    const registerBtn = document.querySelector(".registerBtn")
+    const replyText = document.querySelector(".replyText")
+    const replyer = document.querySelector(".replyer")
+    const closeRegisterBtn = document.querySelector(".closeRegisterBtn")
+
+
+    document.querySelector(".addReplyBtn").addEventListener("click", function (e) {
+        registerModal.show()
+    }, false)
+
+    closeRegisterBtn.addEventListener("click", function (e) {
+        registerModal.hide()
+    })
+
+
+    registerBtn.addEventListener("click", function (e) {
+
+        const replyObj = {
+            bno:bno,
+            replyText:replyText.value,
+            replyer:replyer.value
+        }
+
+        addReply(replyObj).then(result => {
+            alert(result.rno)
+            registerModal.hide()
+            replyText.value = ''
+            replyer.value = ''
+            printReplies(1, 10, true)
+        }).catch(e => {
+            alert("Exception...")
+        })
+    }, false)
+
+
+    // modify Modal
+    const modifyModal = new bootstrap.Modal(document.querySelector(".modifyModal"))
+
+    const replyHeader = document.querySelector(".replyHeader")
+    const modifyText = document.querySelector(".modifyText")
+
+    // 자기 댓글만 수정/삭제 권한 부여
+    const currentUser = [[${#authentication.principal.username}]]
+
+    const modifyBtn = document.querySelector(".modifyBtn")
+    const removeBtn = document.querySelector(".removeBtn")
+    const closeModifyBtn = document.querySelector(".closeModifyBtn")
+
+    // 댓글 작성자와 현재 사용자 일치 여부에 대한 변수 hasAuth 지정
+    let hasAuth = false;
+
+
+    // 특정 댓글 클릭 이벤트(모달창 팝업)
+    replyList.addEventListener("click", function (e) {
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target
+
+        if(!target || target.tagName != 'SPAN') {
+            return
+        }
+
+        const rno = target.getAttribute("data-rno")
+
+        if(!rno) {
+            return
+        }
+
+        // 댓글의 내용을 모달창에 채워서 보여주는 메소드
+        getReply(rno).then(reply => {
+            console.log(reply)
+            replyHeader.innerHTML = reply.rno
+            modifyText.value = reply.replyText
+            modifyModal.show()
+
+            // 댓글 작성자와 사용자 일치여부 확인
+            hasAuth = currentUser === reply.replyer
+
+        }).catch(e => alert('error'))
+
+    }, false)
+
+    // 특정 댓글 모달창 modify 이벤트 처리
+    modifyBtn.addEventListener("click", function (e) {
+
+        if(!hasAuth) {
+            alert("댓글 작성자만 수정 가능합니다.")
+            modifyModal.hide()
+            return
+        }
+
+        const replyObj = {
+            bno: bno,
+            rno: replyHeader.innerHTML,
+            replyText: modifyText.value
+        }
+
+        modifyReply(replyObj).then(result => {
+            alert(result.rno + ' 댓글이 수정되었습니다.')
+            replyText.value = ''
+            modifyModal.hide()
+            printReplies(page, size)
+        }).catch(e => {
+            console.log(e)
+        })
+    }, false)
+
+    closeModifyBtn.addEventListener("click", function (e) {
+        modifyModal.hide()
+    }, false)
+
+    // 댓글 페이지 번호 클릭 액션
+    let page = 1
+    let size = 10
+
+    replyPaging.addEventListener("click", function (e) {
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target
+
+        if(!target || target.tagName!='A') {
+            return
+        }
+
+        const pageNum = target.getAttribute("data-page")
+        page = pageNum
+        printReplies(page, size)
+
+    }, false)
+
+    // 댓글 삭제
+    removeBtn.addEventListener("click", function(e) {
+
+        if(!hasAuth) {
+            alert("댓글 작성자만 삭제 가능합니다.")
+            modifyModal.hide()
+            return
+        }
+
+        removeReply(replyHeader.innerHTML).then(result => {
+
+            alert(result.rno +  ' 댓글이 삭제되었습니다.')
+            replyText.value = ''
+            modifyModal.hide()
+
+            page = 1
+
+            printReplies(page, size)
+        }).catch(e => {
+            console.log(e)
+        })
+    }, false)
+
+
+
+</script>

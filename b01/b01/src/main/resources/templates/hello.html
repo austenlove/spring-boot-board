@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<h1 th:text="${msg}"></h1>
+<!--<h3 th:each="${sos}">SOS</h3>-->
+
+<div th:with="num1 = ${10}, num2 = ${20}">
+    <h4 th:text="${num1 + num2}"></h4>
+</div>
+
+<div>
+    <h1 th:text="${param.name}"></h1>
+    <h1 th:text="${param.age}"></h1>
+</div>
+
+<h4 style="margin-bottom: 0;">th:each를 이용한 반복문</h4>
+<ul>
+    <li th:each="str: ${param.types}">
+        [[${str}]]
+    </li>
+</ul>
+
+<h4 style="margin-bottom: 0;">th:block 태그를 이용한 반복문</h4>
+<ul>
+    <th:block th:each="str: ${param.types}">
+        <li>[[${str}]]</li>
+    </th:block>
+</ul>
+
+</body>
+</html>
